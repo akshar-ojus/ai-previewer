@@ -1,1 +1,30 @@
-{"props": {"label": "Home Page", "to": "/home"}, "wrappers": {"router": true, "redux": false, "query": false}}
+{
+  "src/UserCard.jsx": {
+    "props": {
+      "username": "Alice Wonderland",
+      "email": "alice.wonderland@example.com",
+      "isOnline": true,
+      "badges": [
+        "Admin",
+        "Premium Member",
+        "Verified"
+      ]
+    },
+    "wrappers": {
+      "router": false,
+      "redux": false,
+      "query": false
+    }
+  },
+  "src/SmartLink.jsx": {
+    "props": {
+      "label": "Product Details",
+      "to": "/products/123"
+    },
+    "wrappers": {
+      "router": true,
+      "redux": false,
+      "query": false
+    }
+  }
+}
