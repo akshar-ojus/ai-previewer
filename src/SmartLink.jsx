@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 const SmartLink = ({ label, to }) => {
   return (
     <div className="nav-link">
-      <p>✨ NEW: Navigate quickly to {label}</p>
+      <p>✨ NEW: Navigation test {label}</p>
       <Link to={to} style={{ color: 'blue' }}>
         Go Now &rarr;
       </Link>
