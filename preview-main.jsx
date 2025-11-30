@@ -1,16 +1,22 @@
 
     import React from 'react';
     import ReactDOM from 'react-dom/client';
-    import './src/UserCard.css';  // <--- CSS IS INJECTED HERE
-    import UserCard from './src/UserCard.jsx'; 
-    import mockData from './mock-data.json';
+    import './src/UserCard.css';
+    import { BrowserRouter } from 'react-router-dom'; 
+    import TargetComponent from './src/SmartLink.jsx'; 
+
+    // We embed the mock data directly from the analysis
+    const mockProps = {"label":"Home Page","to":"/home"};
 
     ReactDOM.createRoot(document.getElementById('root')).render(
-      <div style={{ padding: '20px' }}>
-        <h1>Preview: UserCard</h1>
+      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+        <h1>Smart Preview</h1>
         <hr />
         <br />
-        <UserCard {...mockData} />
+        {/* The wrapper strings (like <BrowserRouter>) are injected here */}
+        <BrowserRouter>
+          <TargetComponent {...mockProps} />
+        </BrowserRouter>
       </div>
     );
   

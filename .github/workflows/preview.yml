@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # CRITICAL: We need full history to run 'git diff'
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v3
@@ -26,15 +28,27 @@ jobs:
       - name: 🧠 Run AI Preview Generator
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: npm run preview
+        run: |
+          # 1. Find the changed .jsx file comparing this branch (HEAD) to the base (main)
+          CHANGED_FILE=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(jsx|tsx)$' | head -n 1)
 
-      - name: 🚀 Deploy to GitHub Pages (Preview Folder)
+          if [ -z "$CHANGED_FILE" ]; then
+            echo "⚠️ No React component changes detected. Skipping preview."
+            exit 0
+          fi
+
+          echo "🔍 Detected change in: $CHANGED_FILE"
+
+          # 2. Run the master script with the detected filename
+          node index.js "./$CHANGED_FILE"
+
+      - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           destination_dir: pr-${{ github.event.number }}
-          keep_files: true # Don't delete other PR previews!
+          keep_files: true
 
       - name: 💬 Post Comment on PR
         uses: actions/github-script@v6
@@ -49,5 +63,5 @@ jobs:
               owner: owner,
               repo: repoName,
               issue_number: prNumber,
-              body: `## 🚀 AI Component Preview Ready!\n\nI have generated a mock preview for your component changes.\n\n**[Click here to view the AI Preview](${previewUrl})**`
+              body: `## 🚀 Smart AI Preview Ready!\n\nI analyzed your code and generated a custom preview.\n\n**[Click here to view the Preview](${previewUrl})**`
             });
