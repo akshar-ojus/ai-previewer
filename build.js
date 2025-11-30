@@ -4,99 +4,127 @@ const path = require('path');
 const { execSync } = require('child_process');
 const glob = require('glob');
 
-// --- NEW DYNAMIC CONFIG ---
-const COMPONENT_PATH = process.argv[2];
 const ANALYSIS_PATH = './analysis.json';
 
-if (!COMPONENT_PATH) {
-  console.error("❌ Error: You must provide a component path!");
-  process.exit(1);
-}
+async function buildDashboard() {
+  console.log("🏗️  Starting Dashboard Build...");
 
-async function buildPreview() {
-  console.log("🏗️  Starting Smart Build Process...");
-
-  // 1. READ THE AI ANALYSIS
-  // We need to know both the 'props' and the 'wrappers' requirements
   if (!fs.existsSync(ANALYSIS_PATH)) {
-    console.error("❌ Analysis file not found. Run analyze.js first!");
+    console.error("❌ No analysis file found.");
     process.exit(1);
   }
+
   const analysis = JSON.parse(fs.readFileSync(ANALYSIS_PATH, 'utf8'));
-  const { props, wrappers } = analysis;
+  const files = Object.keys(analysis);
+  const inputs = {}; // We will pass this to Vite
+  const links = [];  // For the dashboard
 
-  console.log("🧠 AI Config Loaded:", wrappers);
-
-  // 2. PREPARE WRAPPERS
-  // We dynamically build the strings for imports and wrapping tags
-  let extraImports = [];
-  let wrapperStart = '';
-  let wrapperEnd = '';
-
-  // Logic: If 'router' is needed, add BrowserRouter
-  if (wrappers.router) {
-    extraImports.push("import { BrowserRouter } from 'react-router-dom';");
-    wrapperStart += '<BrowserRouter>';
-    wrapperEnd = '</BrowserRouter>' + wrapperEnd;
-  }
-
-  // (Future expansion: If 'redux' is true, add <Provider> here)
-
-  // 3. FIND CSS (Style Sniffer from before)
+  // 1. FIND CSS (Global Sniffer)
   const cssFiles = glob.sync('src/**/*.css');
-  const cssImports = cssFiles.map(file => `import './${file}';`).join('\n');
+  const cssImports = cssFiles.map(f => `import './${f}';`).join('\n');
 
-  // 4. GENERATE THE REACT WRAPPER
-  const entryContent = `
-    import React from 'react';
-    import ReactDOM from 'react-dom/client';
-    ${cssImports}
-    ${extraImports.join('\n')} 
-    import TargetComponent from '${COMPONENT_PATH}'; 
+  // 2. LOOP THROUGH EVERY FILE
+  files.forEach((filePath, index) => {
+    const data = analysis[filePath];
+    const safeName = path.basename(filePath, path.extname(filePath)); // e.g. "UserCard"
+    const entryName = `preview-${safeName}.jsx`;
+    const htmlName = `preview-${safeName}.html`;
 
-    // We embed the mock data directly from the analysis
-    const mockProps = ${JSON.stringify(props)};
+    // A. Generate Wrappers (Same logic as before)
+    let extraImports = [];
+    let wrapperStart = '';
+    let wrapperEnd = '';
+    if (data.wrappers?.router) {
+      extraImports.push("import { BrowserRouter } from 'react-router-dom';");
+      wrapperStart += '<BrowserRouter>';
+      wrapperEnd = '</BrowserRouter>';
+    }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-        <h1>Smart Preview</h1>
-        <hr />
-        <br />
-        {/* The wrapper strings (like <BrowserRouter>) are injected here */}
-        ${wrapperStart}
-          <TargetComponent {...mockProps} />
-        ${wrapperEnd}
-      </div>
-    );
-  `;
+    // B. Generate Entry JSX
+    const entryContent = `
+      import React from 'react';
+      import ReactDOM from 'react-dom/client';
+      ${cssImports}
+      ${extraImports.join('\n')}
+      import TargetComponent from './${filePath}';
+      const mockProps = ${JSON.stringify(data.props)};
 
-  fs.writeFileSync('preview-main.jsx', entryContent);
-  console.log("✅ Created smart React entry point.");
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        <div style={{ padding: '20px' }}>
+          ${wrapperStart}
+            <TargetComponent {...mockProps} />
+          ${wrapperEnd}
+        </div>
+      );
+    `;
+    fs.writeFileSync(entryName, entryContent);
 
-  // 5. GENERATE HTML (Standard)
-  const htmlContent = `
+    // C. Generate HTML Page
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head><title>Preview: ${safeName}</title></head>
+        <body>
+          <div id="root"></div>
+          <script type="module" src="/${entryName}"></script>
+        </body>
+      </html>
+    `;
+    fs.writeFileSync(htmlName, htmlContent);
+
+    // D. Add to lists
+    inputs[safeName] = path.resolve(__dirname, htmlName);
+    links.push(`<li><a href="${htmlName}" style="font-size: 1.2rem; display: block; margin: 10px 0;">🔭 Preview <b>${safeName}</b></a></li>`);
+  });
+
+  // 3. GENERATE DASHBOARD (Main Index)
+  const dashboardHTML = `
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
       <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Smart AI Preview</title>
+        <title>AI Preview Dashboard</title>
+        <style>
+          body { font-family: system-ui, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+          h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+          ul { list-style: none; padding: 0; }
+          li a { text-decoration: none; color: #007bff; border: 1px solid #eee; padding: 15px; border-radius: 8px; transition: 0.2s; }
+          li a:hover { background: #f9f9f9; border-color: #ccc; }
+        </style>
       </head>
       <body>
-        <div id="root"></div>
-        <script type="module" src="/preview-main.jsx"></script>
+        <h1>🚀 AI Preview Dashboard</h1>
+        <p>The following components were modified in this PR:</p>
+        <ul>${links.join('')}</ul>
       </body>
     </html>
   `;
-  fs.writeFileSync('index.html', htmlContent);
+  fs.writeFileSync('index.html', dashboardHTML);
+  inputs['main'] = path.resolve(__dirname, 'index.html');
 
-  // 6. RUN VITE
+  // 4. GENERATE VITE CONFIG DYNAMICALLY
+  // We need a specific config to tell Vite about multiple input files
+  const viteConfigContent = `
+    import { defineConfig } from 'vite';
+    import react from '@vitejs/plugin-react';
+    export default defineConfig({
+      plugins: [react()],
+      base: './',
+      build: {
+        rollupOptions: {
+          input: ${JSON.stringify(inputs)}
+        }
+      }
+    });
+  `;
+  fs.writeFileSync('vite.multi.config.js', viteConfigContent);
+
+  // 5. RUN BUILD
   try {
-    execSync('npx vite build', { stdio: 'inherit' }); 
-    console.log("🎉 Build Complete!");
-  } catch (error) {
-    console.error("❌ Build Failed:", error.message);
+    execSync('npx vite build --config vite.multi.config.js', { stdio: 'inherit' });
+    console.log("🎉 Dashboard Build Complete!");
+  } catch (err) {
+    console.error("❌ Build Failed:", err.message);
   }
 }
 
-buildPreview();
+buildDashboard();

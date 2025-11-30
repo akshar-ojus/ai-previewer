@@ -29,18 +29,21 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # 1. Find the changed .jsx file comparing this branch (HEAD) to the base (main)
-          CHANGED_FILE=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(jsx|tsx)$' | head -n 1)
+          # 1. Find ALL changed .jsx/.tsx files
+          # We remove 'head -n 1' to get the full list
+          # We use 'tr' to replace newlines with spaces so they become arguments
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
 
-          if [ -z "$CHANGED_FILE" ]; then
+          if [ -z "$CHANGED_FILES" ]; then
             echo "⚠️ No React component changes detected. Skipping preview."
             exit 0
           fi
 
-          echo "🔍 Detected change in: $CHANGED_FILE"
+          echo "🔍 Detected changes in: $CHANGED_FILES"
 
-          # 2. Run the master script with the detected filename
-          node index.js "./$CHANGED_FILE"
+          # 2. Run the master script with ALL files
+          # The variable contains "src/FileA.jsx src/FileB.jsx"
+          node index.js $CHANGED_FILES
 
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

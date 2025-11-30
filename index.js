@@ -1,26 +1,26 @@
+// index.js
 const { execSync } = require('child_process');
 
-// Get the file path from the command line (e.g., "src/UserCard.jsx")
-const targetFile = process.argv[2];
+// Capture ALL arguments (e.g. src/UserCard.jsx src/SmartLink.jsx)
+const targetFiles = process.argv.slice(2).join(' ');
 
-if (!targetFile) {
-  console.error("❌ Error: Please specify a file to preview.");
-  console.error("Example: npm run preview src/UserCard.jsx");
+if (!targetFiles) {
+  console.error("❌ Error: No files specified.");
   process.exit(1);
 }
 
-console.log(`🚀 Starting AI Preview for: ${targetFile}`);
+console.log(`🚀 Starting AI Dashboard for: ${targetFiles}`);
 
 try {
-  // Pass the targetFile argument to the analyzer
   console.log("\n--- STEP 1: ANALYZING ---");
-  execSync(`node analyze.js ${targetFile}`, { stdio: 'inherit' });
+  execSync(`node analyze.js ${targetFiles}`, { stdio: 'inherit' });
 
-  // Pass the targetFile argument to the builder
   console.log("\n--- STEP 2: BUILDING ---");
-  execSync(`node build.js ${targetFile}`, { stdio: 'inherit' });
+  // build.js reads the analysis.json, so it doesn't strictly need args, 
+  // but we can pass them if we ever need to. For now, no args needed.
+  execSync(`node build.js`, { stdio: 'inherit' });
 
-  console.log("\n✅ DONE! Run 'npx vite preview' to see the result.");
+  console.log("\n✅ DONE! Run 'npx vite preview' to see the dashboard.");
 
 } catch (error) {
   console.error("\n❌ Execution failed.");
