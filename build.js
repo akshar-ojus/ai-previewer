@@ -2,59 +2,85 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const glob = require('glob'); // We need this library to find files
+const glob = require('glob');
 
-// --- CONFIGURATION ---
-const COMPONENT_PATH = './src/UserCard.jsx';
-const DATA_PATH = './mock-data.json';
+// --- NEW DYNAMIC CONFIG ---
+const COMPONENT_PATH = process.argv[2];
+const ANALYSIS_PATH = './analysis.json';
+
+if (!COMPONENT_PATH) {
+  console.error("❌ Error: You must provide a component path!");
+  process.exit(1);
+}
 
 async function buildPreview() {
-  console.log("🏗️  Starting Build Process...");
+  console.log("🏗️  Starting Smart Build Process...");
 
-  // 1. FIND CSS FILES (The "Style Sniffer")
-  // We look for any .css file in the src folder.
-  // In a real project, you might look for 'tailwind.css' or 'App.css' specifically.
-  const cssFiles = glob.sync('src/**/*.css');
-  
-  let cssImports = '';
-  if (cssFiles.length > 0) {
-    console.log(`🎨 Found ${cssFiles.length} CSS file(s):`, cssFiles);
-    // Create import strings: import './src/index.css';
-    cssImports = cssFiles.map(file => `import './${file}';`).join('\n');
-  } else {
-    console.log("⚠️  No CSS files found. Preview might look unstyled.");
+  // 1. READ THE AI ANALYSIS
+  // We need to know both the 'props' and the 'wrappers' requirements
+  if (!fs.existsSync(ANALYSIS_PATH)) {
+    console.error("❌ Analysis file not found. Run analyze.js first!");
+    process.exit(1);
+  }
+  const analysis = JSON.parse(fs.readFileSync(ANALYSIS_PATH, 'utf8'));
+  const { props, wrappers } = analysis;
+
+  console.log("🧠 AI Config Loaded:", wrappers);
+
+  // 2. PREPARE WRAPPERS
+  // We dynamically build the strings for imports and wrapping tags
+  let extraImports = [];
+  let wrapperStart = '';
+  let wrapperEnd = '';
+
+  // Logic: If 'router' is needed, add BrowserRouter
+  if (wrappers.router) {
+    extraImports.push("import { BrowserRouter } from 'react-router-dom';");
+    wrapperStart += '<BrowserRouter>';
+    wrapperEnd = '</BrowserRouter>' + wrapperEnd;
   }
 
-  // 2. GENERATE THE REACT WRAPPER
-  // We inject the 'cssImports' at the top!
+  // (Future expansion: If 'redux' is true, add <Provider> here)
+
+  // 3. FIND CSS (Style Sniffer from before)
+  const cssFiles = glob.sync('src/**/*.css');
+  const cssImports = cssFiles.map(file => `import './${file}';`).join('\n');
+
+  // 4. GENERATE THE REACT WRAPPER
   const entryContent = `
     import React from 'react';
     import ReactDOM from 'react-dom/client';
-    ${cssImports}  // <--- CSS IS INJECTED HERE
-    import UserCard from '${COMPONENT_PATH}'; 
-    import mockData from '${DATA_PATH}';
+    ${cssImports}
+    ${extraImports.join('\n')} 
+    import TargetComponent from '${COMPONENT_PATH}'; 
+
+    // We embed the mock data directly from the analysis
+    const mockProps = ${JSON.stringify(props)};
 
     ReactDOM.createRoot(document.getElementById('root')).render(
-      <div style={{ padding: '20px' }}>
-        <h1>Preview: UserCard</h1>
+      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+        <h1>Smart Preview</h1>
         <hr />
         <br />
-        <UserCard {...mockData} />
+        {/* The wrapper strings (like <BrowserRouter>) are injected here */}
+        ${wrapperStart}
+          <TargetComponent {...mockProps} />
+        ${wrapperEnd}
       </div>
     );
   `;
 
   fs.writeFileSync('preview-main.jsx', entryContent);
-  console.log("✅ Created temporary React entry point with styles.");
+  console.log("✅ Created smart React entry point.");
 
-  // 3. GENERATE HTML (Standard)
+  // 5. GENERATE HTML (Standard)
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>AI Component Preview</title>
+        <title>Smart AI Preview</title>
       </head>
       <body>
         <div id="root"></div>
@@ -64,9 +90,8 @@ async function buildPreview() {
   `;
   fs.writeFileSync('index.html', htmlContent);
 
-  // 4. RUN VITE
+  // 6. RUN VITE
   try {
-    console.log("📦 Running Vite Build...");
     execSync('npx vite build', { stdio: 'inherit' }); 
     console.log("🎉 Build Complete!");
   } catch (error) {
