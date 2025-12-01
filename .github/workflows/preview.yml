@@ -50,6 +50,36 @@ jobs:
           destination_dir: pr-${{ github.event.number }}
           keep_files: true
 
+      - name: ⏳ Wait for Deployment to go Live
+        shell: bash
+        run: |
+          # 1. Construct the URL (Same logic as the comment script)
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          PR_NUM="${{ github.event.number }}"
+          URL="https://${OWNER}.github.io/${REPO}/pr-${PR_NUM}/"
+
+          echo "🔍 Polling URL: $URL"
+
+          # 2. Loop: Check URL every 10 seconds (Max 2 minutes)
+          MAX_RETRIES=12
+          SLEEP_TIME=10
+
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+            # Curl the URL and get the Status Code (e.g., 200, 404)
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
+            
+            if [ "$STATUS" == "200" ]; then
+              echo "✅ Site is live! (Status: 200)"
+              exit 0
+            fi
+            
+            echo "zzz... Attempt $i/$MAX_RETRIES: Site not ready yet (Status: $STATUS). Waiting ${SLEEP_TIME}s..."
+            sleep $SLEEP_TIME
+          done
+
+          echo "⚠️ Timeout: Site didn't go live within 2 minutes. Proceeding anyway."
+
       - name: 💬 Post Comment on PR
         uses: actions/github-script@v6
         with:
