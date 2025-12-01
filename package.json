@@ -1,15 +1,30 @@
 {
   "name": "mockmirror",
   "version": "1.0.0",
+  "description": "Automated AI-powered component previews for GitHub Pull Requests.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "preview": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "Automated AI-powered component previews for GitHub Pull Requests.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/mockmirror.git"
+  },
+  "keywords": [
+    "github-actions",
+    "react",
+    "ai",
+    "preview",
+    "gemini",
+    "code-review"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/mockmirror/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/mockmirror#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@vitejs/plugin-react": "^5.1.1",
@@ -17,7 +32,7 @@
     "glob": "^13.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.6",
-    "reactflow": "^11.11.4"
+    "react-router-dom": "^6.22.0",
+    "vite": "^5.1.4"
   }
 }
