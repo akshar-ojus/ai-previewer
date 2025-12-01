@@ -15,7 +15,7 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # CRITICAL: We need full history to run 'git diff'
+          fetch-depth: 0
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v3
@@ -29,10 +29,8 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # 1. Find ALL changed .jsx/.tsx files
-          # We remove 'head -n 1' to get the full list
-          # We use 'tr' to replace newlines with spaces so they become arguments
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
+          # FIX: Use strict comparison (space instead of ...) to ignore merged files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "⚠️ No React component changes detected. Skipping preview."
@@ -41,8 +39,7 @@ jobs:
 
           echo "🔍 Detected changes in: $CHANGED_FILES"
 
-          # 2. Run the master script with ALL files
-          # The variable contains "src/FileA.jsx src/FileB.jsx"
+          # Run the tool
           node index.js $CHANGED_FILES
 
       - name: 🚀 Deploy to GitHub Pages
