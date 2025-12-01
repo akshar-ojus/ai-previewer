@@ -1,4 +1,5 @@
 // src/SimpleFlow.js
+// A simple React Flow setup to visualize nodes and edges
 import React, { useCallback } from 'react';
 import ReactFlow, {
   MiniMap,
@@ -8,6 +9,8 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
 } from 'reactflow';
+
+import './SimpleFlow.css';
 
 // Import mandatory styles
 import 'reactflow/dist/style.css';
@@ -34,6 +37,7 @@ export default function SimpleFlow() {
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       fitView
+      className="react-flow-canvas"
     >
       <Controls />
       <MiniMap />
