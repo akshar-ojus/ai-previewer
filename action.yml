@@ -1,0 +1,60 @@
+name: "MockMirror Preview"
+description: "AI-powered component previews for React Pull Requests"
+author: "Your Name"
+branding:
+  icon: "monitor"
+  color: "blue"
+
+inputs:
+  gemini_api_key:
+    description: "Your Google Gemini API Key"
+    required: true
+  github_token:
+    description: "GitHub Token for posting comments"
+    required: true
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: "20"
+
+    - name: 📦 Install MockMirror Dependencies
+      shell: bash
+      # We install dependencies inside the ACTION'S folder (not the user's repo)
+      run: |
+        cd ${{ github.action_path }}
+        npm ci --omit=dev
+
+    - name: 🧠 Run Generator
+      id: generator
+      shell: bash
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+      run: |
+        # 1. Find changed .jsx/.tsx files
+        CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
+
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "No changes detected."
+          echo "result=skip" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "result=deploy" >> $GITHUB_OUTPUT
+
+        # 2. Run the tool using the Action's path
+        # We pass the full path to index.js so node can find it
+        node ${{ github.action_path }}/index.js $CHANGED_FILES
+
+    - name: 🚀 Deploy to GitHub Pages
+      if: steps.generator.outputs.result == 'deploy'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ inputs.github_token }}
+        publish_dir: ./dist
+        destination_dir: pr-${{ github.event.number }}
+        keep_files: true
