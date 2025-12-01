@@ -61,7 +61,7 @@ async function buildDashboard() {
       const mockProps = ${JSON.stringify(data.props)};
 
       ReactDOM.createRoot(document.getElementById('root')).render(
-        <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ padding: '20px', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           ${wrapperStart}
             <TargetComponent {...mockProps} />
           ${wrapperEnd}
