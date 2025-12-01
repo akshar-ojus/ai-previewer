@@ -1,4 +1,5 @@
 // src/SimpleFlow.js
+// Component that sets up and renders the React Flow diagram
 import React, { useCallback } from 'react';
 import ReactFlow, {
   MiniMap,

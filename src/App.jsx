@@ -1,4 +1,5 @@
 // src/App.js
+// Main application component that renders the SimpleFlow diagram
 import React from 'react';
 import SimpleFlow from './SimpleFlow';
 

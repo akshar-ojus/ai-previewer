@@ -26,23 +26,31 @@ jobs:
         run: npm install
 
       - name: 🧠 Run AI Preview Generator
+        id: ai_preview # <--- ID IS REQUIRED to reference outputs later
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # FIX: Use strict comparison (space instead of ...) to ignore merged files
+          # 1. Find changed .jsx/.tsx files
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "⚠️ No React component changes detected. Skipping preview."
+            echo "⚠️ No React component changes detected."
+            # Set the output variable to 'false'
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           echo "🔍 Detected changes in: $CHANGED_FILES"
 
+          # Set the output variable to 'true'
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
           # Run the tool
           node index.js $CHANGED_FILES
 
       - name: 🚀 Deploy to GitHub Pages
+        # Only run if the previous step said 'true'
+        if: steps.ai_preview.outputs.should_deploy == 'true'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -51,9 +59,10 @@ jobs:
           keep_files: true
 
       - name: ⏳ Wait for Deployment to go Live
+        # Only run if deployment happened
+        if: steps.ai_preview.outputs.should_deploy == 'true'
         shell: bash
         run: |
-          # 1. Construct the URL (Same logic as the comment script)
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.event.repository.name }}"
           PR_NUM="${{ github.event.number }}"
@@ -61,26 +70,23 @@ jobs:
 
           echo "🔍 Polling URL: $URL"
 
-          # 2. Loop: Check URL every 10 seconds (Max 2 minutes)
           MAX_RETRIES=12
           SLEEP_TIME=10
 
           for ((i=1; i<=MAX_RETRIES; i++)); do
-            # Curl the URL and get the Status Code (e.g., 200, 404)
             STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
-            
             if [ "$STATUS" == "200" ]; then
               echo "✅ Site is live! (Status: 200)"
               exit 0
             fi
-            
             echo "zzz... Attempt $i/$MAX_RETRIES: Site not ready yet (Status: $STATUS). Waiting ${SLEEP_TIME}s..."
             sleep $SLEEP_TIME
           done
-
           echo "⚠️ Timeout: Site didn't go live within 2 minutes. Proceeding anyway."
 
       - name: 💬 Post Comment on PR
+        # Only run if deployment happened
+        if: steps.ai_preview.outputs.should_deploy == 'true'
         uses: actions/github-script@v6
         with:
           script: |
