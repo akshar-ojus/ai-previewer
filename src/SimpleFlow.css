@@ -1,0 +1,59 @@
+/* src/SimpleFlow.css */
+
+/* 1. The Container */
+/* React Flow needs a fixed height to be visible. */
+.flow-container {
+  width: 100%;
+  height: 100vh; /* Takes up the full viewport height */
+  background-color: #f8f9fa; /* Light grey background */
+}
+
+/* 2. Styling the Nodes */
+/* React Flow adds class names like .react-flow__node-input, .react-flow__node-default, etc. */
+
+.react-flow__node {
+  font-family: 'Helvetica', sans-serif;
+  font-size: 14px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  background: white;
+  padding: 10px;
+}
+
+/* Specific styling for the Input Node (Start) */
+.react-flow__node-input {
+  background: #e3f2fd; /* Light Blue */
+  border-color: #2196f3;
+  color: #0d47a1;
+  font-weight: bold;
+}
+
+/* Specific styling for the Default Node (Process) */
+.react-flow__node-default {
+  background: #fff3e0; /* Light Orange */
+  border-color: #ff9800;
+}
+
+/* Specific styling for the Output Node (End) */
+.react-flow__node-output {
+  background: #e8f5e9; /* Light Green */
+  border-color: #4caf50;
+}
+
+/* 3. Styling the Controls (Zoom buttons) */
+.react-flow__controls {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  border-bottom: 1px solid #eee;
+  background: white;
+}
+
+.react-flow__controls-button:hover {
+  background: #f0f0f0;
+}
