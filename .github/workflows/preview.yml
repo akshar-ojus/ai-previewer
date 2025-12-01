@@ -1,0 +1,129 @@
+name: MockMirror Preview
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🧠 Run MockMirror Generator
+        id: ai_preview # <--- ID IS REQUIRED to reference outputs later
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          # 1. Find changed .jsx/.tsx files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "⚠️ No React component changes detected."
+            # Set the output variable to 'false'
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "🔍 Detected changes in: $CHANGED_FILES"
+
+          # Set the output variable to 'true'
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+          # Run the tool
+          node index.js $CHANGED_FILES
+
+      - name: 🚀 Deploy to GitHub Pages
+        # Only run if the previous step said 'true'
+        if: steps.ai_preview.outputs.should_deploy == 'true'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: pr-${{ github.event.number }}
+          keep_files: true
+
+      - name: ⏳ Wait for Deployment to go Live
+        # Only run if deployment happened
+        if: steps.ai_preview.outputs.should_deploy == 'true'
+        shell: bash
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          PR_NUM="${{ github.event.number }}"
+          URL="https://${OWNER}.github.io/${REPO}/pr-${PR_NUM}/"
+
+          echo "🔍 Polling URL: $URL"
+
+          MAX_RETRIES=12
+          SLEEP_TIME=10
+
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
+            if [ "$STATUS" == "200" ]; then
+              echo "✅ Site is live! (Status: 200)"
+              exit 0
+            fi
+            echo "zzz... Attempt $i/$MAX_RETRIES: Site not ready yet (Status: $STATUS). Waiting ${SLEEP_TIME}s..."
+            sleep $SLEEP_TIME
+          done
+          echo "⚠️ Timeout: Site didn't go live within 2 minutes. Proceeding anyway."
+
+      - name: 💬 Post or Update Comment
+        if: steps.ai_preview.outputs.should_deploy == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const repoName = context.repo.repo;
+            const owner = context.repo.owner;
+            const previewUrl = `https://${owner}.github.io/${repoName}/pr-${prNumber}/`;
+            const header = '## MockMirror Ready!';
+            const body = `${header}\n\nI analyzed your code and generated a custom preview.\n\n**[Click here to view the Preview](${previewUrl})**\n\n_(Last updated: ${new Date().toLocaleString()})_`;
+
+            // 1. Get all comments on this PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: owner,
+              repo: repoName,
+              issue_number: prNumber,
+            });
+
+            // 2. Find if the bot already commented
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes(header)
+            );
+
+            // 3. Update existing or Create new
+            if (botComment) {
+              console.log(`Updating existing comment ID: ${botComment.id}`);
+              await github.rest.issues.updateComment({
+                owner: owner,
+                repo: repoName,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              console.log("Creating a new comment");
+              await github.rest.issues.createComment({
+                owner: owner,
+                repo: repoName,
+                issue_number: prNumber,
+                body: body
+              });
+            }

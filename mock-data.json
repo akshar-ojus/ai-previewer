@@ -1,0 +1,10 @@
+{
+  "username": "Alice Wonderland",
+  "email": "alice.w@example.com",
+  "isOnline": true,
+  "badges": [
+    "Verified User",
+    "Community Contributor",
+    "Early Adopter"
+  ]
+}
