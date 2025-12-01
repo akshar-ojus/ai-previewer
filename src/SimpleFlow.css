@@ -57,3 +57,14 @@
 .react-flow__controls-button:hover {
   background: #f0f0f0;
 }
+
+
+/* This targets the main wrapper of the React Flow component */
+.react-flow-canvas {
+  background-color: #F7F9FB;
+}
+
+/* You can also style the dots here if you want! */
+.react-flow__background {
+  opacity: 0.5;
+}

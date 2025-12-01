@@ -10,6 +10,8 @@ import ReactFlow, {
   addEdge,
 } from 'reactflow';
 
+import './SimpleFlow.css';
+
 // Import mandatory styles
 import 'reactflow/dist/style.css';
 
@@ -35,6 +37,7 @@ export default function SimpleFlow() {
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       fitView
+      className="react-flow-canvas"
     >
       <Controls />
       <MiniMap />
