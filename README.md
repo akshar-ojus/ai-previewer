@@ -27,7 +27,20 @@ MockMirror is a GitHub Action that automatically detects changed React component
 3.  **Name:** `GEMINI_API_KEY` 
 4.  **Value:** Paste your key. 
 
-### 3. Create the Workflow
+### 3. Enable GitHub Pages (One-Time Setup)
+
+Your repository needs a place to host the preview.
+
+Go to **Settings > Pages**.
+
+Under **Build and deployment** > **Source**, select **"Deploy from a branch"**.
+
+Under **Branch**, select ```gh-pages``` and save.
+(Note: If ```gh-pages``` doesn't exist yet, run the action once first, then come back here).
+
+**⚠️ Important:** GitHub Pages is free for Public repositories. For Private repositories, you need a GitHub Pro or Team plan.
+
+### 4. Create the Workflow
 
 Create a file in your repository at `.github/workflows/mockmirror.yml`: 
 
@@ -48,8 +61,7 @@ jobs:
         with:
           fetch-depth: 0 # Important for detecting changes
       - name: Run MockMirror
-        # Note: Replace your-username/ai-previewer with your actual repository name
-        uses: your-username/mockmirror@v1
+        uses: akshar-ojus/mockmirror@v1
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
