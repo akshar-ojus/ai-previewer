@@ -78,12 +78,10 @@ async function buildDashboard() {
     dashboardData.push({ name: safeName, url: htmlName, originalPath: filePath });
   });
 
-  // 3. COPY DASHBOARD ASSETS TO USER DIR (So Vite can build them)
-  // We read the source from the Action dir and write it to the User dir
+  // 3. COPY DASHBOARD ASSETS
   const dashboardSrc = fs.readFileSync(path.join(ACTION_DIR, 'src', 'Dashboard.jsx'), 'utf8');
   const dashboardCss = fs.readFileSync(path.join(ACTION_DIR, 'src', 'dashboard.css'), 'utf8');
   
-  // We modify the import path in Dashboard.jsx to point to the local data file we are about to create
   const adjustedDashboardSrc = dashboardSrc.replace("import { previews } from './dashboard.data';", "import { previews } from './dashboard.data.js';");
 
   fs.writeFileSync(path.join(USER_DIR, 'mm-dashboard.jsx'), adjustedDashboardSrc);
@@ -104,16 +102,15 @@ async function buildDashboard() {
   fs.writeFileSync(path.join(USER_DIR, 'index.html'), indexHtml);
   viteInputs['main'] = path.resolve(USER_DIR, 'index.html');
 
-  // 6. GENERATE VITE CONFIG (IN ACTION DIR)
-  // We write the config inside the Action folder so it can find 'vite' and 'react' dependencies.
-  // But we set 'root' to USER_DIR so it finds the source files.
+  // 6. GENERATE VITE CONFIG
+  // FIX: We inject aliases to force Vite to use the Action's node_modules
   const viteConfigContent = `
     import { defineConfig } from 'vite';
     import react from '@vitejs/plugin-react';
     import path from 'path';
 
     export default defineConfig({
-      root: '${USER_DIR}', // Critical: Tell Vite to look in the User's repo
+      root: '${USER_DIR}',
       plugins: [react()],
       base: './',
       build: {
@@ -125,20 +122,21 @@ async function buildDashboard() {
       },
       resolve: {
         alias: {
-          // Fix imports for the dashboard assets we just copied
-          '/dashboard.css': path.resolve('${USER_DIR}', 'dashboard.css')
+          '/dashboard.css': path.resolve('${USER_DIR}', 'dashboard.css'),
+          // FORCE REACT TO RESOLVE FROM ACTION DIR
+          'react': path.resolve('${ACTION_DIR}', 'node_modules', 'react'),
+          'react-dom': path.resolve('${ACTION_DIR}', 'node_modules', 'react-dom'),
+          'react/jsx-runtime': path.resolve('${ACTION_DIR}', 'node_modules', 'react/jsx-runtime'),
         }
       }
     });
   `;
-  // Save as .mjs in ACTION_DIR
   const configPath = path.join(ACTION_DIR, 'vite.config.mjs');
   fs.writeFileSync(configPath, viteConfigContent);
 
   // 7. RUN BUILD
   try {
     console.log("📦 Running Vite Build...");
-    // We execute the binary from ACTION_DIR, using the config from ACTION_DIR
     execSync(`"${VITE_BIN}" build --config "${configPath}"`, { stdio: 'inherit' });
     console.log("🎉 Dashboard Build Complete!");
   } catch (err) {
