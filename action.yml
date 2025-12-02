@@ -24,7 +24,6 @@ runs:
 
     - name: 📦 Install MockMirror Dependencies
       shell: bash
-      # We install dependencies inside the ACTION'S folder (not the user's repo)
       run: |
         cd ${{ github.action_path }}
         npm ci --omit=dev
@@ -35,7 +34,7 @@ runs:
       env:
         GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
       run: |
-        # 1. Find changed .jsx/.tsx files
+        # 1. Find changed .jsx/.tsx files using 2-dot diff
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '\.(jsx|tsx)$' | tr '\n' ' ')
 
         if [ -z "$CHANGED_FILES" ]; then
@@ -47,7 +46,6 @@ runs:
         echo "result=deploy" >> $GITHUB_OUTPUT
 
         # 2. Run the tool using the Action's path
-        # We pass the full path to index.js so node can find it
         node ${{ github.action_path }}/index.js $CHANGED_FILES
 
     - name: 🚀 Deploy to GitHub Pages
@@ -58,3 +56,74 @@ runs:
         publish_dir: ./dist
         destination_dir: pr-${{ github.event.number }}
         keep_files: true
+
+    - name: ⏳ Wait for Deployment to go Live
+      if: steps.generator.outputs.result == 'deploy'
+      shell: bash
+      run: |
+        OWNER="${{ github.repository_owner }}"
+        REPO="${{ github.event.repository.name }}"
+        PR_NUM="${{ github.event.number }}"
+        URL="https://${OWNER}.github.io/${REPO}/pr-${PR_NUM}/"
+
+        echo "🔍 Polling URL: $URL"
+
+        MAX_RETRIES=12
+        SLEEP_TIME=10
+
+        for ((i=1; i<=MAX_RETRIES; i++)); do
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
+          if [ "$STATUS" == "200" ]; then
+            echo "✅ Site is live! (Status: 200)"
+            exit 0
+          fi
+          echo "zzz... Attempt $i/$MAX_RETRIES: Site not ready yet (Status: $STATUS). Waiting ${SLEEP_TIME}s..."
+          sleep $SLEEP_TIME
+        done
+        echo "⚠️ Timeout: Site didn't go live within 2 minutes. Proceeding anyway."
+
+    - name: 💬 Post or Update Comment
+      if: steps.generator.outputs.result == 'deploy'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const repoName = context.repo.repo;
+          const owner = context.repo.owner;
+          const previewUrl = `https://${owner}.github.io/${repoName}/pr-${prNumber}/`;
+
+          const header = '## MockMirror Preview Ready';
+          const body = `${header}\n\nI analyzed your code and generated a custom preview.\n\n**[Click here to view the Preview](${previewUrl})**\n\n_(Last updated: ${new Date().toLocaleString()})_`;
+
+          // 1. Get previous comments
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: owner,
+            repo: repoName,
+            issue_number: prNumber,
+          });
+
+          // 2. Find existing bot comment
+          const botComment = comments.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes(header)
+          );
+
+          // 3. Update if exists, Create if new
+          if (botComment) {
+            console.log(`Updating existing comment ID: ${botComment.id}`);
+            await github.rest.issues.updateComment({
+              owner: owner,
+              repo: repoName,
+              comment_id: botComment.id,
+              body: body
+            });
+          } else {
+            console.log("Creating a new comment");
+            await github.rest.issues.createComment({
+              owner: owner,
+              repo: repoName,
+              issue_number: prNumber,
+              body: body
+            });
+          }
