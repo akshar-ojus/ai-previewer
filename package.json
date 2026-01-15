@@ -1,5 +1,5 @@
 {
-  "name": "mockmirror",
+  "name": "ai-frontend-previewer",
   "version": "1.0.0",
   "description": "Automated AI-powered component previews for GitHub Pull Requests.",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/mockmirror.git"
+    "url": "git+https://github.com/YOUR_USERNAME/ai-frontend-previewer.git"
   },
   "keywords": [
     "github-actions",
@@ -22,9 +22,9 @@
   "author": "Your Name",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/mockmirror/issues"
+    "url": "https://github.com/YOUR_USERNAME/ai-frontend-previewer/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/mockmirror#readme",
+  "homepage": "https://github.com/YOUR_USERNAME/ai-frontend-previewer#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@vitejs/plugin-react": "^5.1.1",

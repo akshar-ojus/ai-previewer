@@ -1,4 +1,4 @@
-name: "MockMirror Preview"
+name: "AI Frontend Previewer"
 description: "AI-powered component previews for React Pull Requests"
 author: "Your Name"
 branding:
@@ -22,7 +22,7 @@ runs:
       with:
         node-version: "20"
 
-    - name: 📦 Install MockMirror Dependencies
+    - name: 📦 Install AI Frontend Previewer Dependencies
       shell: bash
       run: |
         cd ${{ github.action_path }}
@@ -93,7 +93,7 @@ runs:
           const owner = context.repo.owner;
           const previewUrl = `https://${owner}.github.io/${repoName}/pr-${prNumber}/`;
 
-          const header = '## MockMirror Preview Ready';
+          const header = '## AI Frontend Previewer Ready';
           const body = `${header}\n\nI analyzed your code and generated a custom preview.\n\n**[Click here to view the Preview](${previewUrl})**\n\n_(Last updated: ${new Date().toLocaleString()})_`;
 
           // 1. Get previous comments

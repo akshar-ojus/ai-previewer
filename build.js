@@ -12,7 +12,7 @@ const VITE_BIN = path.resolve(ACTION_DIR, 'node_modules', '.bin', 'vite');
 const TIMESTAMP = Date.now(); // Cache-busting ID
 
 async function buildDashboard() {
-  console.log("🏗️  Starting MockMirror Build...");
+  console.log("🏗️  Starting AI Frontend Previewer Build...");
 
   if (!fs.existsSync(ANALYSIS_PATH)) {
     console.error("❌ No analysis file found.");
@@ -105,7 +105,7 @@ async function buildDashboard() {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>MockMirror Dashboard</title>
+        <title>AI Frontend Previewer Dashboard</title>
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <meta http-equiv="Pragma" content="no-cache" />
         <meta http-equiv="Expires" content="0" />

@@ -17,7 +17,7 @@ const Dashboard = () => {
       {/* LEFT SIDEBAR: Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="brand">MockMirror</h1>
+          <h1 className="brand">AI Frontend Previewer</h1>
           <p className="subtitle">
             {previews.length} changed component{previews.length !== 1 ? 's' : ''}
           </p>

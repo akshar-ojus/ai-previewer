@@ -12,7 +12,7 @@ if (!targetFiles) {
 // Get the directory where THIS script lives (The Action folder)
 const scriptDir = __dirname;
 
-console.log(`🚀 Starting MockMirror for: ${targetFiles}`);
+console.log(`🚀 Starting AI Frontend Previewer for: ${targetFiles}`);
 
 try {
   console.log("\n--- STEP 1: ANALYZING ---");
