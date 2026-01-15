@@ -17,7 +17,6 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 let projectContext = "Unknown React Application";
 
 try {
-  // A. Read Package.json (Name & Dependencies)
   if (fs.existsSync('package.json')) {
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     projectContext = `Project Name: "${pkg.name || 'Unnamed'}"\nDescription: "${pkg.description || ''}"`;
@@ -25,10 +24,8 @@ try {
     projectContext += `\nKey Libraries: ${deps}`;
   }
 
-  // B. Read README.md (Business Logic) - Idea 1
   if (fs.existsSync('README.md')) {
     const readme = fs.readFileSync('README.md', 'utf8');
-    // We truncate to 3000 chars to save tokens but get the "gist"
     projectContext += `\n\nREADME Summary:\n${readme.substring(0, 3000)}...`;
   }
 } catch (e) {
@@ -54,7 +51,7 @@ async function analyzeAll() {
 
       // --- STEP 2: CONSTRUCT PROMPT ---
       const prompt = `
-        You are a Data Mocking Expert. 
+        You are a Senior Seed Data Generator. Your job is to create realistic, production-ready mock data for UI components.
         
         PROJECT CONTEXT:
         ${projectContext}
@@ -64,15 +61,20 @@ async function analyzeAll() {
         Is TypeScript: ${isTS}
 
         TASK:
-        Analyze the component code and generate realistic JSON props.
+        Analyze the component code and generate a JSON object containing 'props' and 'wrappers'.
 
-        STRICT GUIDELINES:
-        1. **Context is King:** Use the Project Context/README to infer the data domain. (e.g. if README says "Bookstore", generate Book titles, not "Product A").
-        2. **Working Images (Idea 2):** NEVER generate fake URLs like 'http://example.com/img.jpg'. 
-           - For Users/Avatars use: "https://ui-avatars.com/api/?name=John+Doe&background=random"
-           - For Products/Items use: "https://placehold.co/600x400?text=Product+Name"
-        3. **TypeScript Compliance (Idea 3):** If the file is .tsx, look for 'interface' or 'type' definitions. You MUST generate data that strictly matches those types (enums, optional fields, arrays).
-        4. **Wrappers:** Detect if the code needs 'router', 'redux', or 'query'.
+        STRICT DATA GUIDELINES (DO NOT IGNORE):
+        1. **Realism is Mandatory:** NEVER use "Lorem Ipsum", "Test Title", "Sample Text", "Item 1", "Foo", or "Bar". 
+           - If it's a Chat App, use messages like "Hey, are we still on for lunch?"
+           - If it's an E-commerce App, use specific product names like "Sony WH-1000XM4 Wireless Headphones".
+        2. **Lists & Arrays:** If the component displays a list (e.g., .map()), you MUST generate **4 to 6 unique items**.
+           - Vary the status (e.g., one 'active', one 'pending', one 'failed').
+           - Vary the lengths of text to test UI wrapping.
+        3. **Working Images:** Use these services for visual props:
+           - User Avatars: "https://ui-avatars.com/api/?name=Alice+Smith&background=random"
+           - Products/Cover Images: "https://placehold.co/600x400?text=Product+Image"
+        4. **Dates:** Use realistic past/future ISO dates if needed (e.g., "2023-10-15T09:00:00Z").
+        5. **TypeScript:** Strictly follow any interfaces defined in the code.
 
         Output JSON format:
         {
@@ -89,7 +91,6 @@ async function analyzeAll() {
       
       masterAnalysis[filePath] = JSON.parse(text);
 
-      // ⏳ WAIT 4 SECONDS before next request to respect Rate Limits (15 RPM)
       if (FILES.length > 1) {
         process.stdout.write("      (Waiting 4s to avoid rate limit...)\n");
         await sleep(4000); 
@@ -97,7 +98,6 @@ async function analyzeAll() {
 
     } catch (err) {
       console.error(`   ❌ Failed to analyze ${filePath}: ${err.message}`);
-      // Fallback: empty props if AI fails
       masterAnalysis[filePath] = { props: {}, wrappers: {} }; 
     }
   }
