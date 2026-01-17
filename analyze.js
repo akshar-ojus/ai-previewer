@@ -23,7 +23,6 @@ try {
     const deps = Object.keys(pkg.dependencies || {}).join(', ');
     projectContext += `\nKey Libraries: ${deps}`;
   }
-
   if (fs.existsSync('README.md')) {
     const readme = fs.readFileSync('README.md', 'utf8');
     projectContext += `\n\nREADME Summary:\n${readme.substring(0, 3000)}...`;
@@ -51,7 +50,7 @@ async function analyzeAll() {
 
       // --- STEP 2: CONSTRUCT PROMPT ---
       const prompt = `
-        You are a Senior Seed Data Generator. Your job is to create realistic, production-ready mock data for UI components.
+        You are a Full-Stack Data Mocking Expert. 
         
         PROJECT CONTEXT:
         ${projectContext}
@@ -61,25 +60,24 @@ async function analyzeAll() {
         Is TypeScript: ${isTS}
 
         TASK:
-        Analyze the component code and generate a JSON object containing 'props' and 'wrappers'.
+        1. Analyze props (like before).
+        2. **NEW:** Analyze the code for network calls (fetch, axios, api.* calls).
+        3. Infer the **Response Structure** those calls expect based on how the variables are used in the JSX (e.g. if code uses 'data.user.name', the mock MUST be { user: { name: "..." } }).
 
-        STRICT DATA GUIDELINES (DO NOT IGNORE):
-        1. **Realism is Mandatory:** NEVER use "Lorem Ipsum", "Test Title", "Sample Text", "Item 1", "Foo", or "Bar". 
-           - If it's a Chat App, use messages like "Hey, are we still on for lunch?"
-           - If it's an E-commerce App, use specific product names like "Sony WH-1000XM4 Wireless Headphones".
-        2. **Lists & Arrays:** If the component displays a list (e.g., .map()), you MUST generate **4 to 6 unique items**.
-           - Vary the status (e.g., one 'active', one 'pending', one 'failed').
-           - Vary the lengths of text to test UI wrapping.
-        3. **Working Images:** Use these services for visual props:
-           - User Avatars: "https://ui-avatars.com/api/?name=Alice+Smith&background=random"
-           - Products/Cover Images: "https://placehold.co/600x400?text=Product+Image"
-        4. **Dates:** Use realistic past/future ISO dates if needed (e.g., "2023-10-15T09:00:00Z").
-        5. **TypeScript:** Strictly follow any interfaces defined in the code.
-
+        STRICT GUIDELINES:
+        1. **Network Mocks:** If the component fetches data, generate a 'network_mocks' object.
+           - Key: The URL path (e.g., "/api/user", "/api/tasks"). Use "*" if the URL is dynamic.
+           - Value: The JSON response object.
+        2. **Realism:** Use realistic data (names, dates, prices).
+        3. **Images:** Use valid placeholders (placehold.co, ui-avatars.com).
+        
         Output JSON format:
         {
           "props": { ... },
-          "wrappers": { "router": boolean, "redux": boolean, "query": boolean }
+          "wrappers": { "router": boolean, "redux": boolean, "query": boolean },
+          "network_mocks": [
+             { "url_pattern": "string (regex-like or partial match)", "method": "GET", "response": { ...json... } }
+          ]
         }
 
         COMPONENT CODE:
@@ -98,12 +96,12 @@ async function analyzeAll() {
 
     } catch (err) {
       console.error(`   ❌ Failed to analyze ${filePath}: ${err.message}`);
-      masterAnalysis[filePath] = { props: {}, wrappers: {} }; 
+      masterAnalysis[filePath] = { props: {}, wrappers: {}, network_mocks: [] }; 
     }
   }
 
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(masterAnalysis, null, 2));
-  console.log(`✅ Bulk Analysis complete! Saved to ${OUTPUT_PATH}`);
+  console.log(`✅ Analysis complete!`);
 }
 
 analyzeAll();
